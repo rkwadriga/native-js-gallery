@@ -25,7 +25,7 @@ export class Gallery {
             margin: options.margin || 10,
             sensitivity: options.sensitivity || 40,
             speed: options.speed !== undefined ? (1 / options.speed) : 0.5,
-            autoSpeed: options.autoSpeed || 1,
+            autoSpeed: options.autoSpeed !== undefined ? options.autoSpeed : 1,
             dots: options.dots !== undefined ? options.dots : true
         }
 
