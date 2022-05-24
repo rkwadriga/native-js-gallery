@@ -1,0 +1,8 @@
+{
+    "name": "native-js-gallery",
+    "type": "module",
+    "private": true,
+    "version": "0.0.1",
+    "author": "Dmitry Kushneriov",
+    "license": "ISC"
+}
