@@ -22,9 +22,11 @@ export class Gallery {
         this.prevSlide = 0;
         this.currentSlide = 0;
         this.settings = {
-            margin: options.margin || 0,
+            margin: options.margin || 10,
             sensitivity: options.sensitivity || 40,
-            speed: options.speed !== undefined ? (1 / options.speed) : 0.25
+            speed: options.speed !== undefined ? (1 / options.speed) : 0.5,
+            autoSpeed: options.autoSpeed || 1,
+            dots: options.dots !== undefined ? options.dots : true
         }
 
         // Bind "this" for all methods - they should work correctly in any context
@@ -38,6 +40,7 @@ export class Gallery {
         this.resetStyleTransition = this.resetStyleTransition.bind(this);
         this.changeCurrentSlide = this.changeCurrentSlide.bind(this);
         this.changeDisabledNav = this.changeDisabledNav.bind(this);
+        this.autoScroll = this.autoScroll.bind(this);
         this.startDrag = this.startDrag.bind(this);
         this.stopDrag = this.stopDrag.bind(this);
         this.dragging = this.dragging.bind(this);
@@ -51,6 +54,10 @@ export class Gallery {
         this.setParameters();
         // Add user's events listeners
         this.setEvents();
+        // Start auto scroll if it's enabled
+        if (this.settings.autoSpeed > 0) {
+            this.autoScroll();
+        }
     }
 
     manageHTML() {
@@ -79,17 +86,19 @@ export class Gallery {
 
         // Generate slides dots and dd them to the gallery container
         this.dotsNodes = [];
-        this.dotsNode = createElement('div', GalleryDotsClassName);
-        Array.from(Array(this.size).keys()).forEach(key => {
-            const dotNode = createElement('button', GalleryDotClassName);
-            dotNode.dataset.index = String(key);
-            if (key === this.currentSlide) {
-                dotNode.classList.add(GalleryActiveDotClassName);
-            }
-            this.dotsNode.appendChild(dotNode);
-            this.dotsNodes.push(dotNode);
-        });
-        this.containerNode.appendChild(this.dotsNode);
+        if (this.settings.dots) {
+            this.dotsNode = createElement('div', GalleryDotsClassName);
+            Array.from(Array(this.size).keys()).forEach(key => {
+                const dotNode = createElement('button', GalleryDotClassName);
+                dotNode.dataset.index = String(key);
+                if (key === this.currentSlide) {
+                    dotNode.classList.add(GalleryActiveDotClassName);
+                }
+                this.dotsNode.appendChild(dotNode);
+                this.dotsNodes.push(dotNode);
+            });
+            this.containerNode.appendChild(this.dotsNode);
+        }
     }
 
     setParameters() {
@@ -118,10 +127,12 @@ export class Gallery {
             {name: 'pointerdown', callback: this.startDrag, target: this.lineNode},
             {name: 'pointerup', callback: this.stopDrag},
             {name: 'pointercancel', callback: this.stopDrag},
-            {name: 'click', callback: this.clickDots, target: this.dotsNode},
             {name: 'click', callback: this.clickLeft, target: this.btnLeftNode},
             {name: 'click', callback: this.clickRight, target: this.btnRightNode}
         ];
+        if (this.dotsNode !== undefined) {
+            this.eventListeners.push({name: 'click', callback: this.clickDots, target: this.dotsNode});
+        }
         this.eventListeners.forEach(listener => {
             if (listener.target === undefined) {
                 listener.target = window;
@@ -134,9 +145,21 @@ export class Gallery {
         this.eventListeners.forEach(listener => listener.target.removeEventListener(listener.name, listener.callback));
     }
 
+    autoScroll() {
+        setInterval(() => {
+            let countSwipes = 1;
+            if (this.currentSlide < this.size - 1) {
+                this.currentSlide++;
+            } else {
+                countSwipes = 0;
+                this.currentSlide = 0;
+            }
+            this.changeCurrentSlide(countSwipes);
+        }, 5000 / this.settings.autoSpeed);
+    }
+
     setStyleTransition(countSwipes = 1) {
         this.lineNode.style.transition = `all ${this.settings.speed * countSwipes}s ease 0s`;
-        console.log(this.lineNode.style.transition);
     }
 
     setStylePosition() {
@@ -160,14 +183,16 @@ export class Gallery {
         }
     }
 
-    changeCurrentSlide(countSwipes) {
+    changeCurrentSlide(countSwipes = 1) {
         this.X = -this.currentSlide * (this.width + this.settings.margin);
         this.setStyleTransition(countSwipes);
         this.setStylePosition();
         this.changeDisabledNav();
         // Remove "active" class from the old active dot and add to the new one
-        this.dotsNodes[this.prevSlide].classList.remove(GalleryActiveDotClassName);
-        this.dotsNodes[this.currentSlide].classList.add(GalleryActiveDotClassName);
+        if (this.dotsNodes.length > 0) {
+            this.dotsNodes[this.prevSlide].classList.remove(GalleryActiveDotClassName);
+            this.dotsNodes[this.currentSlide].classList.add(GalleryActiveDotClassName);
+        }
         this.prevSlide = this.currentSlide;
     }
 
